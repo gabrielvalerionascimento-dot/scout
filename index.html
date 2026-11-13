@@ -82,6 +82,9 @@ section{margin-top:22px}section>h3{font-size:14px;margin-bottom:10px;padding-bot
 @media (max-width:900px){#app{flex-direction:column-reverse}#nav{width:auto;flex-direction:row;padding:4px 6px calc(4px + env(safe-area-inset-bottom));border-right:0;border-top:1px solid var(--lin)}#nav .brand{display:none}#nav nav{flex-direction:row;justify-content:space-around;width:100%}#nav nav a{flex-direction:column;gap:1px;padding:5px 4px;font-size:10px;flex:1;min-width:0}#nav nav a.on{box-shadow:inset 0 3px 0 var(--pri)}#nav nav a span{font-size:0}#nav nav a span:after{content:attr(data-curto);font-size:10.5px}#nav nav a i{font-size:17px}.nav-end{margin-top:0}
 #top{padding:8px 12px}#view{padding:14px 12px 30px}.campos{grid-template-columns:1fr}.campoLayout{grid-template-columns:1fr}.tbl-wrap.grande{max-height:none}.grade{grid-template-columns:1fr}.slot{min-width:84px;width:25%}.gcab .btn[data-act=proxIncompleta],.gcab .btn[data-act=cmpAdd]{display:none}.dia{min-height:64px}.seg{margin-left:0}}
 @media print{#nav,#top,.cab .acoes,.campoLado .mut,#drawer,#veu,#toast{display:none!important}#col{overflow:visible}body{background:#fff;color:#000}.campoLayout{grid-template-columns:1fr}.gramado{-webkit-print-color-adjust:exact;print-color-adjust:exact}.titulo{color:#000}}
+.ogolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}.foto{width:64px;height:64px;border-radius:12px;object-fit:cover;background:var(--bg3)}.foto.mini{width:34px;height:34px;border-radius:8px}
+.ogolcab{display:flex;gap:14px;align-items:center;margin-bottom:14px}.ogolcab h2{font-size:20px}.opcao{display:flex;gap:8px;align-items:baseline;padding:6px 0;text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;color:var(--tx);cursor:pointer}
+.ogtbl td{white-space:normal}.grade+.cartaoP,.cartaoP+.cartaoP{margin-top:14px}
 
 </style>
 </head>
@@ -449,6 +452,7 @@ const M = (() => {
       { k: 'posicoes', l: 'Posição', t: 'multi' }, { k: 'perfil', l: 'Perfil da posição', t: 'sel' },
       { k: 'nascimento', l: 'Data de nascimento', t: 'date' }, { k: 'pe', l: 'Pé dominante', t: 'sel' },
       { k: 'biotipo', l: 'Biotipo', t: 'sel' }, { k: 'altura', l: 'Altura', t: 'sel' },
+      { k: 'alturaCm', l: 'Altura (cm)', t: 'text' }, { k: 'pesoKg', l: 'Peso (kg)', t: 'text' }, { k: 'contrato', l: 'Contrato até', t: 'text' }, { k: 'ogol', l: 'Link oGol', t: 'url' },
       { k: 'clubes', l: 'Clube atual', t: 'rels', ent: 'clubes' }, { k: 'categorias', l: 'Categoria', t: 'multi' },
       { k: 'nacionalidade', l: 'Nacionalidade', t: 'sel' }, { k: 'status', l: 'Status', t: 'sel' },
       { k: 'potencial', l: 'Potencial do jogador', t: 'sel' }, { k: 'fortes', l: 'Pontos fortes', t: 'multi' },
@@ -797,7 +801,11 @@ const M = (() => {
   function extrasHTML(ent, r) {
     if (ent === 'jogadores') {
       const tr = M.trechos(r.id), ag = M.agentesDe(r.id), d = M.diasSemVer(r.id), nLig = tr.filter(t => t.ligado).length;
-      return `<div class="calc"><div><label>Idade</label><b>${U.age(r.nascimento) ?? '—'}</b></div><div><label>Partidas vistas</label><b>${M.partidasDe(r.id).length}</b></div>
+      const busca = 'https://www.ogol.com.br/pesquisa?search_txt=' + encodeURIComponent(r.nome || '');
+      return `<div class="ogolbar">
+          <a class="btn" target="_blank" rel="noopener" href="${esc(r.ogol || busca)}">${r.ogol ? 'Abrir no oGol ↗' : 'Procurar no oGol ↗'}</a>
+          <span class="mut">Na página do jogador no oGol, clique no favorito <b>Enviar ao Scouting</b> para puxar os dados.</span></div>
+        <div class="calc"><div><label>Idade</label><b>${U.age(r.nascimento) ?? '—'}</b></div><div><label>Partidas vistas</label><b>${M.partidasDe(r.id).length}</b></div>
           <div><label>Última vez visto</label><b>${M.ultimaVez(r.id) ? U.fmtDate(M.ultimaVez(r.id)) : '—'}</b> <span class="mut">${haDias(d)}</span></div>
           <div><label>Agente / representante</label>${ag.length ? ag.map(c => relChip('contatos', c.id)).join('') : '<span class="mut">nenhum ligado</span>'}</div></div>
         ${secao(`Observações jogo a jogo <small>${nLig} ligada${nLig === 1 ? '' : 's'}${tr.length - nLig ? ` · ${tr.length - nLig} só citado` : ''}</small>`, tr.length ? tr.map(t => `<div class="trecho ${t.ligado ? '' : 'solto'}">
@@ -830,7 +838,7 @@ const M = (() => {
     const y = drawer.hidden ? 0 : ($('.gcorpo', drawer) || {}).scrollTop || 0;
     drawer.dataset.ent = a.ent; drawer.dataset.id = a.id;
     drawer.innerHTML = `<header class="gcab">${ST.pilha.length > 1 ? `<button class="btn" data-act="voltar" title="Voltar">←</button>` : ''}
-        <div class="gtit"><small>${esc(SING[a.ent])}</small><h2 id="gtit">${esc(M.rotulo(a.ent, r))}</h2></div>
+        ${a.ent === 'jogadores' && r.foto ? `<img class="foto mini" src="${esc(r.foto)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<div class="gtit"><small>${esc(SING[a.ent])}</small><h2 id="gtit">${esc(M.rotulo(a.ent, r))}</h2></div>
         ${a.ent === 'jogadores' ? `<button class="btn" data-act="cmpAdd" data-id="${r.id}">Comparar</button><button class="btn" data-act="proxIncompleta" title="Próxima ficha incompleta">Próxima incompleta →</button>` : ''}
         <button class="btn perigo" data-act="apagar" title="Apagar">Apagar</button><button class="btn" data-act="fechar" title="Fechar">✕</button></header>
       <div class="gcorpo"><div class="campos">${M.CAMPOS[a.ent].map(c => campoHTML(a.ent, r, c)).join('')}</div><div id="extras">${extrasHTML(a.ent, r)}</div></div>`;
@@ -919,6 +927,88 @@ const M = (() => {
         <td><button class="btn" data-act="novoSolto" data-nome="${esc(x.nome)}">Cadastrar como novo</button></td></tr>`).join('') || '<tr><td colspan="4" class="mut centro">Tudo ligado.</td></tr>'}</tbody></table></div>`;
   }
 
+  /* ================= IMPORTAR DO OGOL ================= */
+  // Favorito que roda na página do jogador no oGol/zerozero: lê os dados e abre o app com eles.
+  function bookmarklet() {
+    const app = location.origin + location.pathname;
+    const code = `(function(){if(!/\\/jogador\\//.test(location.pathname)){alert('Abra a página de um jogador no oGol.');return}var L={};document.querySelectorAll('script[type="application/ld+json"]').forEach(function(s){try{var o=JSON.parse(s.textContent);if(o['@type']=='Person')L=o}catch(e){}});var R={};document.querySelectorAll('.card-data.bio .card-data__row').forEach(function(r){var l=r.querySelector('.card-data__label');if(l)R[l.textContent.trim().toLowerCase()]=[].map.call(r.querySelectorAll('.card-data__value'),function(v){return v.textContent.replace(/\\s+/g,' ').trim()})});var t=(document.querySelector('meta[property="og:title"]')||{}).content||document.title;var u=location.origin+location.pathname.split('/').slice(0,4).join('/');var d={u:u,n:t.split(' :: ')[0].trim(),r:R,b:L.birthDate,h:L.height,w:L.weight,nat:L.nationality,f:L.image};window.open('${app}#/ogol/'+encodeURIComponent(JSON.stringify(d)),'_blank')})()`;
+    return 'javascript:' + code;
+  }
+  const POS_OGOL = [[/goleir/, 'GOLEIRO'], [/lateral direit|ala direit/, 'LATERAL DIREITO'], [/lateral esquerd|ala esquerd/, 'LATERAL ESQUERDO'], [/zagueir|defesa central|defensor/, 'ZAGUEIRO'],
+    [/volante|medio defensivo|meio-campista defensivo/, 'VOLANTE'], [/meia|medio ofensivo|meio ofensivo|armador|medio centro ofensivo/, 'MEIA'], [/medio|meio-campo|meio campo|centrocampista|meio-campista/, 'MÉDIO'],
+    [/ponta|extremo/, 'EXTREMO'], [/centroavante|atacante|avancado|ponta de lanca|segundo avancado/, 'ATACANTE']];
+  function lerOgol(arg) {
+    let d; try { d = JSON.parse(decodeURIComponent(arg)); } catch { return null; }
+    const R = d.r || {}, v = k => (R[k] || [])[0] || '';
+    const num = s => (String(s || '').match(/\d+/) || [''])[0];
+    const pos = [...new Set((R['posição'] || R['posicao'] || []).map(p => { const n = U.norm(p); const m = POS_OGOL.find(([re]) => re.test(n)); return m ? m[1] : null; }).filter(Boolean))];
+    const pe = { destro: 'DIREITO', canhoto: 'ESQUERDO', ambidestro: 'AMBIDESTRO' }[U.norm(v('pé preferencial') || v('pe preferencial'))] || null;
+    const ap = (v('altura / peso') || '').split('/');
+    const nasc = (d.b || v('data de nascimento')).match(/\d{4}-\d{2}-\d{2}/);
+    const contr = v('contrato').match(/(\d{4})\/(\d{2})/);
+    return {
+      ogol: d.u, nome: d.n, nomeCompleto: v('nome') || null, nascimento: nasc ? nasc[0] : null,
+      nacionalidade: (d.nat || v('nacionalidade') || '').toUpperCase() || null, posicoes: pos.length ? pos : null, pe,
+      alturaCm: num(d.h || ap[0]) || null, pesoKg: num(d.w || ap[1]) || null, contrato: contr ? `${contr[2]}/${contr[1]}` : null,
+      clube: v('clube atual') || null, foto: d.f || null,
+    };
+  }
+  function candidatosOgol(o) {
+    const id = (o.ogol || '').split('/').pop(), tk = s => U.tokens(s).join(' ');
+    const porLink = DB.jogadores.filter(j => j.ogol && j.ogol.split('/').pop() === id);
+    if (porLink.length) return porLink;
+    const nomes = [tk(o.nome), tk(o.nomeCompleto)].filter(Boolean), cheio = new Set(U.tokens(o.nomeCompleto || o.nome));
+    return DB.jogadores.map(j => {
+      const jn = U.tokens(j.nome); let s = 0;
+      if (nomes.includes(tk(j.nome)) || (j.nomeCompleto && nomes.includes(tk(j.nomeCompleto)))) s = 3;
+      else if (jn.length >= 2 && jn.every(t => cheio.has(t))) s = 2;
+      if (s && j.nascimento && o.nascimento) s = j.nascimento === o.nascimento ? s + 2 : 0;
+      return { j, s };
+    }).filter(x => x.s).sort((a, b) => b.s - a.s).slice(0, 5).map(x => x.j);
+  }
+  const clubeOgol = nome => { if (!nome) return null; const n = U.norm(nome); return DB.clubes.find(c => U.norm(c.nome) === n) || (M.sugerirClubes(nome)[0] || {}).c || null; };
+  const CAMPOS_OGOL = [['nomeCompleto', 'Nome completo'], ['nascimento', 'Data de nascimento'], ['nacionalidade', 'Nacionalidade'], ['posicoes', 'Posição'], ['pe', 'Pé dominante'],
+    ['alturaCm', 'Altura (cm)'], ['pesoKg', 'Peso (kg)'], ['contrato', 'Contrato até'], ['clube', 'Clube atual'], ['ogol', 'Link oGol'], ['foto', 'Foto']];
+  function ogolHTML() {
+    const o = lerOgol(ST.arg || ''); if (!o) return `<p class="mut">Não consegui ler os dados enviados pelo oGol. Tente clicar no favorito de novo.</p>`;
+    ST.ogolDados = o;
+    const cands = candidatosOgol(o);
+    if (ST.ogolAlvo == null || (ST.ogolAlvo !== 'novo' && !cands.some(j => j.id === ST.ogolAlvo))) ST.ogolAlvo = cands[0] ? cands[0].id : 'novo';
+    const j = ST.ogolAlvo === 'novo' ? {} : Store.get('jogadores', ST.ogolAlvo) || {};
+    const cl = clubeOgol(o.clube);
+    const fmt = (k, v) => v == null || v === '' || (Array.isArray(v) && !v.length) ? '<span class="mut">—</span>' : k === 'nascimento' ? `${U.fmtDate(v)} <span class="mut">(${U.age(v)} anos)</span>` : k === 'foto' ? `<img class="foto mini" src="${esc(v)}" referrerpolicy="no-referrer" alt="">` : k === 'ogol' ? `<a href="${esc(v)}" target="_blank" rel="noopener">abrir ↗</a>` : Array.isArray(v) ? v.map(x => chip(x)).join('') : esc(v);
+    const atual = k => k === 'clube' ? M.clubesDe(j) : j[k];
+    const novoClube = k => k === 'clube' ? (cl ? cl.nome : o.clube ? o.clube.toUpperCase() + ' <span class="alerta">(clube novo, será cadastrado)</span>' : null) : null;
+    const igual = (a, b) => JSON.stringify([].concat(a ?? []).map(String).map(U.norm).sort()) === JSON.stringify([].concat(b ?? []).map(String).map(U.norm).sort());
+    const linhas = CAMPOS_OGOL.filter(([k]) => o[k] != null && o[k] !== '').map(([k, l]) => {
+      const a = atual(k), b = k === 'clube' ? (cl ? cl.nome : o.clube.toUpperCase()) : o[k], vazio = a == null || a === '' || (Array.isArray(a) && !a.length), mesmo = !vazio && igual(a, b);
+      return `<tr class="${mesmo ? 'mut' : ''}"><td><input type="checkbox" data-og="${k}" ${mesmo ? 'disabled' : vazio || ['ogol', 'foto', 'contrato', 'alturaCm', 'pesoKg'].includes(k) ? 'checked' : ''}></td><td>${l}</td><td>${fmt(k, a)}</td><td>${novoClube(k) || fmt(k, o[k])}${mesmo ? ' <span class="ok">igual</span>' : ''}</td></tr>`;
+    }).join('');
+    return `<div class="cab"><h1>Importar do oGol</h1></div>
+      <div class="cartaoP ogolcab">${o.foto ? `<img class="foto" src="${esc(o.foto)}" referrerpolicy="no-referrer" alt="">` : ''}<div><h2>${esc(o.nome)}</h2><p class="mut">${esc([o.nomeCompleto, (o.posicoes || []).join(' / '), o.clube].filter(Boolean).join(' · '))}</p></div></div>
+      <div class="cartaoP"><h3>Para qual ficha?</h3>${cands.map(c => `<label class="opcao"><input type="radio" name="ogolAlvo" value="${c.id}" ${ST.ogolAlvo === c.id ? 'checked' : ''}> <b>${esc(c.nome)}</b> <span class="mut">${esc(subJog(c)) || 'ficha sem dados'}</span></label>`).join('')}
+        <label class="opcao"><input type="radio" name="ogolAlvo" value="novo" ${ST.ogolAlvo === 'novo' ? 'checked' : ''}> <b>Cadastrar como jogador novo</b></label>
+        ${cands.length ? '' : '<p class="mut">Não achei esse jogador no seu banco.</p>'}</div>
+      <div class="cartaoP"><h3>O que vai ser preenchido</h3><p class="mut">Marcados: campos vazios na sua ficha. Quando a sua ficha já tem um valor diferente, ele só é trocado se você marcar.</p>
+        <div class="tbl-wrap"><table class="tbl ogtbl"><thead><tr><th></th><th>Campo</th><th>Na sua ficha</th><th>No oGol</th></tr></thead><tbody>${linhas}</tbody></table></div>
+        <div class="linha fim"><a class="btn" href="#/jogadores">Cancelar</a><button class="btn pri" data-act="ogolSalvar">${ST.ogolAlvo === 'novo' ? 'Cadastrar jogador' : 'Atualizar ficha'}</button></div></div>`;
+  }
+  function ogolSalvar() {
+    const o = ST.ogolDados; if (!o) return;
+    const marc = new Set($$('[data-og]').filter(c => c.checked).map(c => c.dataset.og));
+    const patch = {};
+    for (const [k] of CAMPOS_OGOL) if (marc.has(k) && k !== 'clube') patch[k] = o[k];
+    let j = ST.ogolAlvo === 'novo' ? Store.add('jogadores', { nome: o.nome }) : Store.get('jogadores', ST.ogolAlvo);
+    if (marc.has('clube')) {
+      const cl = clubeOgol(o.clube) || Store.add('clubes', { nome: o.clube.toUpperCase(), ...(o.nacionalidade ? {} : {}) });
+      const selecoes = (j.clubes || []).filter(id => (Store.get('clubes', id) || {}).tipo === 'SELEÇÃO');
+      patch.clubes = [...new Set([cl.id, ...selecoes])];
+    }
+    Store.set('jogadores', j.id, patch);
+    ST.ogolAlvo = null; ST.ogolDados = null;
+    location.hash = '#/jogadores'; setTimeout(() => { abrir('jogadores', j.id); toast('Dados do oGol salvos.'); }, 50);
+  }
+
   /* ================= COMPARADOR ================= */
   function compararHTML() {
     const js = ST.cmp.map(id => Store.get('jogadores', id)).filter(Boolean);
@@ -977,6 +1067,9 @@ const M = (() => {
     return `<div class="cab"><h1>Ajustes</h1></div><div class="grade">
       <div class="cartaoP"><h3>Onde os dados estão</h3><p>${esc(Store.backend.nome)}</p><p class="mut">Cada alteração salva vira uma versão no GitHub. Para ver ou recuperar versões antigas, abra o repositório e clique em "Commits".</p>
         ${cfg.user ? `<a class="btn" target="_blank" rel="noopener" href="https://github.com/${esc(cfg.user)}/${esc(cfg.repo)}/commits">Ver histórico no GitHub ↗</a>` : ''} <button class="btn" data-act="recarregar">Recarregar dados</button></div>
+      <div class="cartaoP"><h3>Puxar dados do oGol</h3><p class="mut">Arraste o botão abaixo para a barra de favoritos do Chrome. Depois, na página de qualquer jogador no oGol (ou zerozero), clique nele: o app abre com os dados do jogador para você conferir e salvar.</p>
+        <div class="linha"><a class="btn pri" href="${esc(bookmarklet())}" onclick="return false" title="Arraste para a barra de favoritos">⚽ Enviar ao Scouting</a><button class="btn" data-act="copiaFav">Copiar código (para o celular)</button></div>
+        <p class="mut">No iPhone: salve qualquer página nos favoritos do Safari, depois edite esse favorito, troque o nome para "Enviar ao Scouting" e cole o código no lugar do endereço.</p></div>
       <div class="cartaoP"><h3>Lembrete de "dias sem ver"</h3><p class="mut">O jogador entra em "Para rever" no Painel quando passa deste número de dias sem aparecer em uma partida. Deixe em branco para não avisar.</p>
         ${M.opcoes('jogadores', 'status').map(s => `<div class="linha">${chip(s)}<input class="in curto" type="number" min="1" data-lemb="${esc(s)}" value="${L[s] ?? ''}"> dias</div>`).join('')}</div>
       <div class="cartaoP"><h3>Cópia de segurança</h3><p class="mut">Baixa tudo para o seu computador, em formatos abertos. O arquivo completo também serve para restaurar ou testar o sistema.</p><div class="linha"><button class="btn" data-act="backup">Tudo em um arquivo (pacote JSON)</button></div>
@@ -1058,7 +1151,7 @@ const M = (() => {
     const mudou = ST.sec !== sec || ST.arg !== arg; ST.sec = sec; ST.arg = arg;
     $$('#nav a').forEach(a => a.classList.toggle('on', a.dataset.sec === sec || (sec === 'campograma' && a.dataset.sec === 'campogramas')));
     if (LISTAS[sec]) { if (mudou || !$('#corpo')) view.innerHTML = listaHTML(sec); else { const ac = $('.acoes', view); if (ac) ac.outerHTML = $('.acoes', Object.assign(document.createElement('div'), { innerHTML: listaHTML(sec) })).outerHTML; } corpo(); }
-    else view.innerHTML = ({ painel: painelHTML, revisar: revisarHTML, 'ligar-clubes': soltosHTML, comparar: compararHTML, campogramas: campogramasHTML, campograma: campogramaHTML, norteador: norteadorHTML, ajustes: ajustesHTML }[sec] || painelHTML)();
+    else view.innerHTML = ({ painel: painelHTML, revisar: revisarHTML, 'ligar-clubes': soltosHTML, ogol: ogolHTML, comparar: compararHTML, campogramas: campogramasHTML, campograma: campogramaHTML, norteador: norteadorHTML, ajustes: ajustesHTML }[sec] || painelHTML)();
     $('#col').scrollTop = y;
   }
   const repintar = U.debounce(() => { ST.sujo = false; pintar(true); }, 120);
@@ -1087,6 +1180,8 @@ const M = (() => {
     cmp: el => { const id = el.dataset.id; ST.cmp = el.checked ? [...ST.cmp, id].slice(-4) : ST.cmp.filter(x => x !== id); pintar(true); },
     cmpAdd: el => { if (!ST.cmp.includes(el.dataset.id)) ST.cmp = [...ST.cmp, el.dataset.id].slice(-4); fechar(); location.hash = '#/comparar'; pintar(); },
     ligaSolto: el => ligaSolto(el.dataset.nome, el.dataset.id),
+    copiaFav: async () => { try { await navigator.clipboard.writeText(bookmarklet()); toast('Código copiado.'); } catch { toast('Não consegui copiar. Segure o botão verde e copie o link.'); } },
+    ogolSalvar: () => ogolSalvar(),
     novoSolto: el => ligaSolto(el.dataset.nome, Store.add('clubes', { nome: el.dataset.nome.toUpperCase() }).id),
     cmpTira: el => { ST.cmp = ST.cmp.filter(x => x !== el.dataset.id); pintar(); }, cmpLimpa: () => { ST.cmp = []; pintar(); },
     proxIncompleta: () => { const l = linhas('jogadores').filter(j => M.faltando(j).length), a = atual(), i = l.findIndex(j => j.id === a.id), n = l[(i + 1) % l.length]; if (!n || n.id === a.id) return toast('Não há outra ficha incompleta nesta lista.'); ST.pilha = []; abrir('jogadores', n.id); },
@@ -1141,6 +1236,7 @@ const M = (() => {
         for (const k2 in g.slots || {}) if (!ant.some(s => s.k === k2)) ns[k2] = [...(ns[k2] || []), ...g.slots[k2]];
         g.slots = ns; g.formacao = t.value; salvaCampo(g); pintar(true); } else { g[k] = t.value; salvaCampo(g); } return; }
     if (t.dataset.fmmove != null && t.value) { fechaModal(); moveSlot(t.dataset.id, t.dataset.slot, t.value); return; }
+    if (t.name === 'ogolAlvo') { ST.ogolAlvo = t.value; pintar(true); return; }
     if (t.dataset.lemb) { const L = { ...(DB.config.lembretes || {}) }; if (t.value) L[t.dataset.lemb] = +t.value; else delete L[t.dataset.lemb]; Store.setConfig({ lembretes: L }); return; }
     if (t.dataset.nort != null) { Store.setNorteador(t.value); return; }
   });
@@ -1224,7 +1320,7 @@ const M = (() => {
   document.documentElement.dataset.tema = localStorage.getItem('scout_tema') || (matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'escuro');
   const local = new URLSearchParams(location.search).get('local'), salvo = JSON.parse(localStorage.getItem('scout_cfg') || 'null');
   if (local && !/:|^\/\//.test(local)) iniciar({ local: local.endsWith('/') ? local : local + '/' }); else if (salvo && salvo.token) iniciar(salvo); else telaSetup();
-  window.__scout = { ST, Store, M, pintar };
+  window.__scout = { ST, Store, M, pintar, bookmarklet };
 })();
 
 </script>
