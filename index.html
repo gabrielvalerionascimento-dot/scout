@@ -233,7 +233,23 @@ const U = (() => {
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   };
 
-  return { esc, norm, tokens, uid, today, nowISO, fmtDate, days, age, parseDateBR, MESES, debounce, hue, chip, md, parseEntries, parseHeader, csv, download };
+  // Nome de clube no padrão da base: só as iniciais maiúsculas ("ATLÉTICO NACIONAL" → "Atlético Nacional").
+  // Se o texto já vier misturando maiúsculas e minúsculas, fica como foi escrito.
+  const MINUSC = new Set(['de', 'da', 'do', 'das', 'dos', 'del', 'la', 'las', 'los', 'el', 'y', 'e', 'di']);
+  const nomeClube = s => {
+    s = String(s ?? '').trim().replace(/\s+/g, ' ');
+    if (!s || (s !== s.toUpperCase() && s !== s.toLowerCase())) return s;
+    return s.split(' ').map((w, i) => w.split('-').map((p, j) => {
+      const l = p.toLowerCase();
+      if (/^u\d{2}$/.test(l)) return l.toUpperCase();
+      if (j > 0 && p.length <= 3) return p.toUpperCase();            // Botafogo-SP, Nacional-URU
+      if (i > 0 && MINUSC.has(l)) return l;
+      if (p.length <= 2) return p.toUpperCase();                     // FC, SC
+      return l.charAt(0).toUpperCase() + l.slice(1);
+    }).join('-')).join(' ');
+  };
+
+  return { nomeClube, esc, norm, tokens, uid, today, nowISO, fmtDate, days, age, parseDateBR, MESES, debounce, hue, chip, md, parseEntries, parseHeader, csv, download };
 })();
 
 </script>
@@ -862,7 +878,7 @@ const M = (() => {
   }
   function escolher(el) {
     const input = $('input', el.closest('.pick')), ent = input.dataset.pick, k = input.dataset.k; let id = el.dataset.id;
-    if (el.dataset.novo) id = Store.add(ent, { nome: ent === 'clubes' ? input.value.trim().toUpperCase() : input.value.trim() }).id;
+    if (el.dataset.novo) id = Store.add(ent, { nome: ent === 'clubes' ? U.nomeClube(input.value) : input.value.trim() }).id;
     if (input.dataset.alvo === 'slot') { addSlot(input.dataset.slot, id); return; }
     if (input.dataset.alvo === 'cmp') { if (!ST.cmp.includes(id)) ST.cmp.push(id); pintar(); return; }
     if (input.dataset.alvo === 'solto') { ligaSolto(input.dataset.nome, id); return; }
@@ -978,10 +994,10 @@ const M = (() => {
     const cl = clubeOgol(o.clube);
     const fmt = (k, v) => v == null || v === '' || (Array.isArray(v) && !v.length) ? '<span class="mut">—</span>' : k === 'nascimento' ? `${U.fmtDate(v)} <span class="mut">(${U.age(v)} anos)</span>` : k === 'foto' ? `<img class="foto mini" src="${esc(v)}" referrerpolicy="no-referrer" alt="">` : k === 'ogol' ? `<a href="${esc(v)}" target="_blank" rel="noopener">abrir ↗</a>` : Array.isArray(v) ? v.map(x => chip(x)).join('') : esc(v);
     const atual = k => k === 'clube' ? M.clubesDe(j) : j[k];
-    const novoClube = k => k === 'clube' ? (cl ? cl.nome : o.clube ? o.clube.toUpperCase() + ' <span class="alerta">(clube novo, será cadastrado)</span>' : null) : null;
+    const novoClube = k => k === 'clube' ? (cl ? cl.nome : o.clube ? U.esc(U.nomeClube(o.clube)) + ' <span class="alerta">(clube novo, será cadastrado)</span>' : null) : null;
     const igual = (a, b) => JSON.stringify([].concat(a ?? []).map(String).map(U.norm).sort()) === JSON.stringify([].concat(b ?? []).map(String).map(U.norm).sort());
     const linhas = CAMPOS_OGOL.filter(([k]) => o[k] != null && o[k] !== '').map(([k, l]) => {
-      const a = atual(k), b = k === 'clube' ? (cl ? cl.nome : o.clube.toUpperCase()) : o[k], vazio = a == null || a === '' || (Array.isArray(a) && !a.length), mesmo = !vazio && igual(a, b);
+      const a = atual(k), b = k === 'clube' ? (cl ? cl.nome : U.nomeClube(o.clube)) : o[k], vazio = a == null || a === '' || (Array.isArray(a) && !a.length), mesmo = !vazio && igual(a, b);
       return `<tr class="${mesmo ? 'mut' : ''}"><td><input type="checkbox" data-og="${k}" ${mesmo ? 'disabled' : vazio || ['ogol', 'foto', 'contrato', 'alturaCm', 'pesoKg'].includes(k) ? 'checked' : ''}></td><td>${l}</td><td>${fmt(k, a)}</td><td>${novoClube(k) || fmt(k, o[k])}${mesmo ? ' <span class="ok">igual</span>' : ''}</td></tr>`;
     }).join('');
     return `<div class="cab"><h1>Importar do oGol</h1></div>
@@ -1000,7 +1016,7 @@ const M = (() => {
     for (const [k] of CAMPOS_OGOL) if (marc.has(k) && k !== 'clube') patch[k] = o[k];
     let j = ST.ogolAlvo === 'novo' ? Store.add('jogadores', { nome: o.nome }) : Store.get('jogadores', ST.ogolAlvo);
     if (marc.has('clube')) {
-      const cl = clubeOgol(o.clube) || Store.add('clubes', { nome: o.clube.toUpperCase(), ...(o.nacionalidade ? {} : {}) });
+      const cl = clubeOgol(o.clube) || Store.add('clubes', { nome: U.nomeClube(o.clube) });
       const selecoes = (j.clubes || []).filter(id => (Store.get('clubes', id) || {}).tipo === 'SELEÇÃO');
       patch.clubes = [...new Set([cl.id, ...selecoes])];
     }
@@ -1109,7 +1125,7 @@ const M = (() => {
   }
   function importarOk() {
     const { txt, h, mand, adv } = lerImport(); if (!txt.trim()) return toast('Cole o relatório primeiro.');
-    const clube = (nome, c) => c ? c.id : nome ? Store.add('clubes', { nome: nome.toUpperCase() }).id : null;
+    const clube = (nome, c) => c ? c.id : nome ? Store.add('clubes', { nome: U.nomeClube(nome) }).id : null;
     const p = Store.add('partidas', { data: h.data || U.today(), mandante: clube(h.mandante, mand), adversario: clube(h.adversario, adv), placar: h.placar, competicao: acharOpcao('partidas', 'competicao', h.competicao), local: h.local ? acharOpcao('partidas', 'local', h.local) : null });
     Store.set('partidas', p.id, {}); Store.setObs(p.id, txt.trim());
     const s = M.citados(p.id).filter(c => c.sugestao && c.sugestao.grau === 'certo'); if (s.length) Store.set('partidas', p.id, { jogadores: s.map(c => c.sugestao.j.id) });
@@ -1182,7 +1198,7 @@ const M = (() => {
     ligaSolto: el => ligaSolto(el.dataset.nome, el.dataset.id),
     copiaFav: async () => { try { await navigator.clipboard.writeText(bookmarklet()); toast('Código copiado.'); } catch { toast('Não consegui copiar. Segure o botão verde e copie o link.'); } },
     ogolSalvar: () => ogolSalvar(),
-    novoSolto: el => ligaSolto(el.dataset.nome, Store.add('clubes', { nome: el.dataset.nome.toUpperCase() }).id),
+    novoSolto: el => ligaSolto(el.dataset.nome, Store.add('clubes', { nome: U.nomeClube(el.dataset.nome) }).id),
     cmpTira: el => { ST.cmp = ST.cmp.filter(x => x !== el.dataset.id); pintar(); }, cmpLimpa: () => { ST.cmp = []; pintar(); },
     proxIncompleta: () => { const l = linhas('jogadores').filter(j => M.faltando(j).length), a = atual(), i = l.findIndex(j => j.id === a.id), n = l[(i + 1) % l.length]; if (!n || n.id === a.id) return toast('Não há outra ficha incompleta nesta lista.'); ST.pilha = []; abrir('jogadores', n.id); },
     importar: importarModal, importarOk, fechaModal,
