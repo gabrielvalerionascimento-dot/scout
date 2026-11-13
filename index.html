@@ -470,7 +470,8 @@ const M = (() => {
       { k: 'nascimento', l: 'Data de nascimento', t: 'date' }, { k: 'pe', l: 'Pé dominante', t: 'sel' },
       { k: 'biotipo', l: 'Biotipo', t: 'sel' }, { k: 'altura', l: 'Altura', t: 'sel' },
       { k: 'alturaCm', l: 'Altura (cm)', t: 'text' }, { k: 'pesoKg', l: 'Peso (kg)', t: 'text' }, { k: 'contrato', l: 'Contrato até', t: 'text' }, { k: 'ogol', l: 'Link oGol', t: 'url' },
-      { k: 'clubes', l: 'Clube atual', t: 'rels', ent: 'clubes' }, { k: 'categorias', l: 'Categoria', t: 'multi' },
+      { k: 'clubes', l: 'Clube atual', t: 'rels', ent: 'clubes' }, { k: 'emprestimoDe', l: 'Emprestado por (clube dono)', t: 'rel', ent: 'clubes' }, { k: 'emprestimoAte', l: 'Empréstimo até', t: 'text' },
+      { k: 'categorias', l: 'Categoria', t: 'multi' },
       { k: 'nacionalidade', l: 'Nacionalidade', t: 'sel' }, { k: 'status', l: 'Status', t: 'sel' },
       { k: 'potencial', l: 'Potencial do jogador', t: 'sel' }, { k: 'fortes', l: 'Pontos fortes', t: 'multi' },
       { k: 'fracos', l: 'Pontos fracos', t: 'multi' }, { k: 'video', l: 'Link vídeo', t: 'url' },
@@ -845,7 +846,9 @@ const M = (() => {
     }
     if (ent === 'clubes') {
       const js = M.jogadoresDoClube(r.id), ps = M.partidasDoClube(r.id);
+      const emp = DB.jogadores.filter(j => j.emprestimoDe === r.id);
       return secao(`Jogadores do clube <small>${js.length}</small>`, js.map(linhaJog).join('') || '<p class="mut">Nenhum jogador ligado a este clube.</p>') +
+        (emp.length ? secao(`Emprestados a outros clubes <small>${emp.length}</small>`, emp.map(linhaJog).join('')) : '') +
         secao(`Partidas do clube <small>${ps.length}</small>`, ps.slice(0, 60).map(linhaPartida).join('') + (ps.length > 60 ? `<p class="mut">+ ${ps.length - 60} mais antigas</p>` : '') || '<p class="mut">Nenhuma partida.</p>');
     }
     if (ent === 'contatos') return `<div class="linha"><button class="btn" data-act="contatoHoje">Registrar contato hoje</button></div>`;
@@ -1037,7 +1040,7 @@ const M = (() => {
   function compararHTML() {
     const js = ST.cmp.map(id => Store.get('jogadores', id)).filter(Boolean);
     const lin = [['Posição', j => chips(j.posicoes)], ['Perfil', j => esc(j.perfil || '')], ['Idade', j => j.nascimento ? `${U.age(j.nascimento)} <span class="mut">(${U.fmtDate(j.nascimento)})</span>` : ''], ['Pé', j => esc(j.pe || '')],
-      ['Biotipo', j => chip(j.biotipo)], ['Altura', j => chip(j.altura)], ['Clube atual', j => M.clubesDe(j).map(n => chip(n)).join('')], ['Categoria', j => chips(j.categorias)], ['Nacionalidade', j => chip(j.nacionalidade)],
+      ['Biotipo', j => chip(j.biotipo)], ['Altura', j => chip(j.altura)], ['Clube atual', j => M.clubesDe(j).map(n => chip(n)).join('') + (j.emprestimoDe ? ` <span class="mut">emprestado por ${esc(M.nomeClube(j.emprestimoDe))}${j.emprestimoAte ? ' até ' + esc(j.emprestimoAte) : ''}</span>` : '')], ['Categoria', j => chips(j.categorias)], ['Nacionalidade', j => chip(j.nacionalidade)],
       ['Status', j => chip(j.status)], ['Potencial', j => chip(j.potencial)], ['Pontos fortes', j => chips(j.fortes)], ['Pontos fracos', j => chips(j.fracos)], ['Partidas vistas', j => M.partidasDe(j.id).length],
       ['Última vez visto', j => M.ultimaVez(j.id) ? `${U.fmtDate(M.ultimaVez(j.id))} <span class="mut">${haDias(M.diasSemVer(j.id))}</span>` : '<span class="mut">nunca</span>'],
       ['Agente', j => M.agentesDe(j.id).map(c => esc(c.nome)).join(', ')], ['Report', j => `<div class="md">${U.md(j.report || '')}</div>`],
