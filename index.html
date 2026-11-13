@@ -1128,7 +1128,12 @@ const M = (() => {
       refazExtras(); return;
     }
     if (t.dataset.add && a) { const k = t.dataset.add; let v = t.value; if (v === '__novo') v = await novaOpcao(a.ent, k); if (v) { const r = Store.get(a.ent, a.id); if (!(r[k] || []).includes(v)) gravar(k, [...(r[k] || []), v]); } refazCampo(k); refazExtras(); return; }
-    if (t.dataset.obs != null && a) { Store.setObs(a.id, t.value.trim()); Store.set('partidas', a.id, {}); ST.editando.obs = false; ST.sujo = true; refazExtras(); return; }
+    if (t.dataset.obs != null && a) {
+      Store.setObs(a.id, t.value.trim()); Store.set('partidas', a.id, {}); ST.editando.obs = false; ST.sujo = true;
+      const dt = U.parseHeader(t.value).data, p = Store.get('partidas', a.id);   // a data escrita no texto manda
+      if (dt && p && dt !== p.data) { Store.set('partidas', a.id, { data: dt }); Store.reObs(a.id); refazCampo('data'); toast(`Data ajustada para ${U.fmtDate(dt)}, como está no texto.`); }
+      refazExtras(); return;
+    }
     if (t.dataset.ff) { filtro(ST.sec).f[t.dataset.ff] = t.value; corpo(); return; }
     if (t.dataset.fl) { filtro(ST.sec).flags[t.dataset.fl] = t.checked; corpo(); return; }
     if (t.dataset.cg) { const g = campoAtual(), k = t.dataset.cg; if (k === 'formacao') { const novas = M.FORMACOES[t.value], ant = M.FORMACOES[g.formacao] || [], ns = {};
