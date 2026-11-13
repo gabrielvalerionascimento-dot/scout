@@ -456,7 +456,7 @@ const M = (() => {
       { k: 'report', l: 'Report do atleta', t: 'md' },
     ],
     partidas: [
-      { k: 'data', l: 'Data da partida', t: 'date' }, { k: 'competicao', l: 'Competição', t: 'sel' },
+      { k: 'data', l: 'Data da partida', t: 'date' }, { k: 'competicao', l: 'Competição', t: 'sel' }, { k: 'rodada', l: 'Rodada / fase', t: 'text' },
       { k: 'mandante', l: 'Clube', t: 'rel', ent: 'clubes', txt: 'mandanteNome' }, { k: 'placar', l: 'Placar', t: 'text' },
       { k: 'adversario', l: 'Adversário', t: 'rel', ent: 'clubes', txt: 'adversarioNome' }, { k: 'local', l: 'Local da partida', t: 'sel' },
       { k: 'categoria', l: 'Categoria', t: 'sel' }, { k: 'formato', l: 'Formato da observação', t: 'sel' },
@@ -674,7 +674,7 @@ const M = (() => {
       cols: [
         { l: 'Data', get: r => r.data || '', html: r => U.fmtDate(r.data), w: 92 },
         { l: 'Título do jogo', get: r => U.norm(M.titulo(r)), html: r => `<b>${esc(M.tituloCurto(r))}</b>` },
-        { l: 'Competição', get: r => r.competicao || '', html: r => chip(r.competicao) },
+        { l: 'Competição', get: r => r.competicao || '', html: r => chip(r.competicao) + (r.rodada ? ` <span class="mut">R${esc(r.rodada)}</span>` : '') },
         { l: 'Categoria', get: r => r.categoria || '', html: r => chip(r.categoria) },
         { l: 'Formato', get: r => r.formato || '', html: r => chip(r.formato) },
         { l: 'Local', get: r => r.local || '', html: r => `<span class="mut">${esc(r.local || '')}</span>` },
