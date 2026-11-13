@@ -86,9 +86,6 @@ section{margin-top:22px}section>h3{font-size:14px;margin-bottom:10px;padding-bot
 .ogolcab{display:flex;gap:14px;align-items:center;margin-bottom:14px}.ogolcab h2{font-size:20px}.opcao{display:flex;gap:8px;align-items:baseline;padding:6px 0;text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;color:var(--tx);cursor:pointer}
 .ogtbl td{white-space:normal}.grade+.cartaoP,.cartaoP+.cartaoP{margin-top:14px}
 
-.loteitem{padding:10px 0;border-top:1px solid var(--lin)}.loteitem:first-of-type{border-top:0}.lotequem{margin-bottom:4px}
-.loteop{display:flex;gap:10px;align-items:center;padding:5px 0 5px 6px;text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;color:var(--tx);cursor:pointer}.loteop .foto.mini{flex:none;display:inline-block}
-.lotenada{display:flex;flex-wrap:wrap;gap:6px}.tag{font-size:11px;padding:1px 7px;border-radius:9px;background:var(--bg3)}.tag.ok{color:var(--pri)}.tag.alerta{color:var(--alerta)}
 
 </style>
 </head>
@@ -630,27 +627,6 @@ const M = (() => {
   });
 
 
-  /* ---------- contexto para achar o jogador no oGol ----------
-     Times em que ele com certeza jogou (S), times dos jogos em que foi citado sem saber o lado (W),
-     países, nascimento, ano do primeiro jogo visto e menor categoria de base. */
-  const contextoOgol = j => {
-    const S = new Set(), W = new Set(), P = new Set(); let ano = 0, cat = 0;
-    const base = nome => { const m = String(nome || '').match(/^(.*?)\s+U(\d\d)$/); if (m) cat = cat ? Math.min(cat, +m[2]) : +m[2]; return m ? m[1] : nome; };
-    const add = (cid, forte) => {
-      const c = get('clubes', cid); if (!c) return;
-      const b = U.norm(base(c.nome)); (forte ? S : W).add(b);
-      if (forte) { if (c.tipo === 'SELEÇÃO') P.add(b); else if (c.pais) P.add(U.norm(c.pais)); }
-    };
-    for (const id of j.clubes || []) add(id, true);
-    for (const t of trechos(j.id)) {
-      const p = t.p, y = +(p.data || '').slice(0, 4); if (y && (!ano || y < ano)) ano = y;
-      const e = entradas(p.id).find(e => acharJogador(e.nome, p, e.clube).some(c => c.j.id === j.id));
-      const lado = e && e.clube ? [p.mandante, p.adversario].find(cid => { const n = U.tokens(base(nomeClube(cid))), h = U.tokens(base(e.clube)); return n.length && h.length && (n.every(x => h.includes(x)) || h.every(x => n.includes(x))); }) : null;
-      if (lado) add(lado, true); else { add(p.mandante, false); add(p.adversario, false); }
-    }
-    for (const x of S) W.delete(x);
-    return { S: [...S], W: [...W], P: [...P], nasc: j.nascimento || '', ano, cat, nac: U.norm(j.nacionalidade || '') };
-  };
 
   /* ---------- campograma ---------- */
   const G = (k, label, pos, x, y) => ({ k, label, pos, x, y });
@@ -668,7 +644,7 @@ const M = (() => {
   };
 
   return {
-    CAMPOS, opcoes, contextoOgol, nomeClube, nomeJog, clubesDe, titulo, tituloCurto, rotulo, partidasDe, partidasDoClube, jogadoresDoClube, agentesDe, ultimaVez, diasSemVer,
+    CAMPOS, opcoes, nomeClube, nomeJog, clubesDe, titulo, tituloCurto, rotulo, partidasDe, partidasDoClube, jogadoresDoClube, agentesDe, ultimaVez, diasSemVer,
     faltando, paraRever, followUps, nomeLado, clubesSoltos, sugerirClubes, entradas, acharJogador, citados, pendencias, trechos, FORMACOES,
   };
 })();
@@ -974,7 +950,7 @@ const M = (() => {
   // Favorito que roda na página do jogador no oGol/zerozero: lê os dados e abre o app com eles.
   function bookmarklet() {
     const app = location.origin + location.pathname;
-    const code = `(function(){if(location.hash.indexOf('#scout-lote=')==0){var s=document.createElement('script');s.src='${app}ogol-lote.js?v='+Date.now();document.body.appendChild(s);return}if(!/\\/jogador\\//.test(location.pathname)){alert('Abra a página de um jogador no oGol.');return}var L={};document.querySelectorAll('script[type="application/ld+json"]').forEach(function(s){try{var o=JSON.parse(s.textContent);if(o['@type']=='Person')L=o}catch(e){}});var R={};document.querySelectorAll('.card-data.bio .card-data__row').forEach(function(r){var l=r.querySelector('.card-data__label');if(l)R[l.textContent.trim().toLowerCase()]=[].map.call(r.querySelectorAll('.card-data__value'),function(v){return v.textContent.replace(/\\s+/g,' ').trim()})});var t=(document.querySelector('meta[property="og:title"]')||{}).content||document.title;var u=location.origin+location.pathname.split('/').slice(0,4).join('/');var d={u:u,n:t.split(' :: ')[0].trim(),r:R,b:L.birthDate,h:L.height,w:L.weight,nat:L.nationality,f:L.image};window.open('${app}#/ogol/'+encodeURIComponent(JSON.stringify(d)),'_blank')})()`;
+    const code = `(function(){if(!/\\/jogador\\//.test(location.pathname)){alert('Abra a página de um jogador no oGol.');return}var L={};document.querySelectorAll('script[type="application/ld+json"]').forEach(function(s){try{var o=JSON.parse(s.textContent);if(o['@type']=='Person')L=o}catch(e){}});var R={};document.querySelectorAll('.card-data.bio .card-data__row').forEach(function(r){var l=r.querySelector('.card-data__label');if(l)R[l.textContent.trim().toLowerCase()]=[].map.call(r.querySelectorAll('.card-data__value'),function(v){return v.textContent.replace(/\\s+/g,' ').trim()})});var t=(document.querySelector('meta[property="og:title"]')||{}).content||document.title;var u=location.origin+location.pathname.split('/').slice(0,4).join('/');var d={u:u,n:t.split(' :: ')[0].trim(),r:R,b:L.birthDate,h:L.height,w:L.weight,nat:L.nationality,f:L.image};window.open('${app}#/ogol/'+encodeURIComponent(JSON.stringify(d)),'_blank')})()`;
     return 'javascript:' + code;
   }
   const POS_OGOL = [[/goleir/, 'GOLEIRO'], [/lateral direit|ala direit/, 'LATERAL DIREITO'], [/lateral esquerd|ala esquerd/, 'LATERAL ESQUERDO'], [/zagueir|defesa central|defensor/, 'ZAGUEIRO'],
@@ -1015,6 +991,9 @@ const M = (() => {
     ['alturaCm', 'Altura (cm)'], ['pesoKg', 'Peso (kg)'], ['contrato', 'Contrato até'], ['clube', 'Clube atual'], ['ogol', 'Link oGol'], ['foto', 'Foto']];
   function ogolHTML() {
     const o = lerOgol(ST.arg || ''); if (!o) return `<p class="mut">Não consegui ler os dados enviados pelo oGol. Tente clicar no favorito de novo.</p>`;
+    // O oGol, quando acha que o acesso é automático, mostra outro jogador na página. Nesse caso não deixa importar.
+    const slug = U.tokens(((o.ogol || '').split('/')[4] || '').replace(/-/g, ' ')), achado = new Set(U.tokens([o.nome, o.nomeCompleto].join(' ')));
+    if (slug.length && !slug.some(t => achado.has(t))) return `<div class="cab"><h1>Importar do oGol</h1></div><div class="cartaoP"><p class="alerta">O oGol mostrou dados de outro jogador nesta página (${esc(o.nome)}). Isso acontece quando o site acha que o acesso é automático. Nada foi salvo.</p><p class="mut">Espere algumas horas, abra a página do jogador de novo e clique no favorito outra vez.</p><a class="btn" href="#/jogadores">Voltar</a></div>`;
     ST.ogolDados = o;
     const cands = candidatosOgol(o);
     if (ST.ogolAlvo == null || (ST.ogolAlvo !== 'novo' && !cands.some(j => j.id === ST.ogolAlvo))) ST.ogolAlvo = cands[0] ? cands[0].id : 'novo';
@@ -1053,62 +1032,6 @@ const M = (() => {
     location.hash = '#/jogadores'; setTimeout(() => { abrir('jogadores', j.id); toast('Dados do oGol salvos.'); }, 50);
   }
 
-
-  /* ================= OGOL EM LOTE ================= */
-  const b64e = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
-  const b64d = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-  const zip = async t => b64e(new Uint8Array(await new Response(new Blob([t]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()));
-  const unz = async s => new TextDecoder().decode(await new Response(new Blob([b64d(s)]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
-  const semOgol = () => DB.jogadores.filter(j => !j.ogol);
-  async function ogolLoteAbrir() {
-    const js = semOgol(); if (!js.length) return toast('Todos os jogadores já têm link do oGol.');
-    const j = js.map(j => { const c = M.contextoOgol(j); return [j.id, j.nome, c.S, c.W, c.P, c.nasc, c.ano, c.cat, c.nac]; });
-    const pac = await zip(JSON.stringify({ app: location.origin + location.pathname, j }));
-    const w = window.open('https://www.ogol.com.br/#scout-lote=' + pac, '_blank');
-    if (!w) toast('O navegador bloqueou a nova aba. Permita pop-ups para este site e tente de novo.');
-    ST.loteAberto = true; pintar(true);
-  }
-  function ogolLoteHTML() {
-    if (ST.loteArg !== ST.arg) {
-      ST.loteArg = ST.arg; ST.lote = null; ST.loteErro = null;
-      unz(ST.arg || '').then(t => { const o = JSON.parse(t); ST.lote = o.r; ST.loteEsc = {}; for (const r of o.r) ST.loteEsc[r.id] = r.st === 'a' ? 0 : null; }).catch(() => { ST.loteErro = true; }).finally(() => pintar(true));
-    }
-    if (ST.loteErro) return `<p class="mut">Não consegui ler o resultado do oGol. Rode a busca de novo em Ajustes.</p>`;
-    if (!ST.lote) return `<p class="mut">Lendo o resultado do oGol…</p>`;
-    const L = ST.lote.filter(r => Store.get('jogadores', r.id)), A = L.filter(r => r.st === 'a'), D = L.filter(r => r.st === 'd'), N = L.filter(r => r.st === 'n');
-    const marcados = L.filter(r => ST.loteEsc[r.id] != null).length;
-    const op = (r, o, i) => {
-      const d = o.d ? lerOgol(o.d) : null;
-      const info = [o.sub, o.nasc && !/-00-00$/.test(o.nasc) ? `${U.fmtDate(o.nasc)} (${U.age(o.nasc)} anos)` : '', o.pais, o.clube, d && d.posicoes ? d.posicoes.join(' / ') : ''].filter(Boolean).join(' · ');
-      const foto = d && d.foto ? `<img class="foto mini" src="${esc(d.foto)}" referrerpolicy="no-referrer" alt="">` : '<span class="foto mini"></span>';
-      const ctrl = r.st === 'a' ? `<input type="checkbox" data-lote="${r.id}" ${ST.loteEsc[r.id] === 0 ? 'checked' : ''}>` : `<input type="radio" name="lote-${r.id}" data-lote="${r.id}" value="${i}" ${ST.loteEsc[r.id] === i ? 'checked' : ''}>`;
-      return `<label class="loteop">${ctrl}${foto}<span><b>${esc(o.nome)}</b> <a href="https://www.ogol.com.br/jogador/${esc(o.slug)}/${esc(o.id)}" target="_blank" rel="noopener" class="mut">oGol ↗</a><br><span class="mut">${esc(info)}</span> ${(o.por || []).map(p => `<span class="tag ${/diferente/.test(p) ? 'alerta' : 'ok'}">${esc(p)}</span>`).join(' ')}</span></label>`;
-    };
-    const quem = r => { const j = Store.get('jogadores', r.id); return `<div class="lotequem"><a data-act="abrir" data-ent="jogadores" data-id="${j.id}"><b>${esc(j.nome)}</b></a> <span class="mut">${esc(subJog(j))}</span></div>`; };
-    return `<div class="cab"><h1>oGol em lote</h1><div class="acoes"><button class="btn pri" data-act="loteSalvar" ${marcados ? '' : 'disabled'}>Salvar ${marcados} jogador${marcados === 1 ? '' : 'es'}</button></div></div>
-      <p class="mut">Só preenche o que está vazio na ficha. Link, foto, altura, peso e contrato vêm sempre do oGol. O clube só entra quando a ficha está sem clube e o clube já existe na sua base.</p>
-      <div class="cartaoP"><h3>Encontrados com segurança <small>${A.length}</small></h3><p class="mut">Nome bate e também o nascimento, o clube ou o país. Desmarque se algum estiver errado.</p>${A.map(r => `<div class="loteitem">${quem(r)}${op(r, r.ops[0], 0)}</div>`).join('') || '<p class="mut">Nenhum.</p>'}</div>
-      <div class="cartaoP"><h3>Escolha você <small>${D.length}</small></h3><p class="mut">Achei mais de um possível. Marque o certo ou deixe "nenhum".</p>${D.map(r => `<div class="loteitem">${quem(r)}${r.ops.map((o, i) => op(r, o, i)).join('')}<label class="loteop"><input type="radio" name="lote-${r.id}" data-lote="${r.id}" value="" ${ST.loteEsc[r.id] == null ? 'checked' : ''}><span class="mut">nenhum destes</span></label></div>`).join('') || '<p class="mut">Nenhum.</p>'}</div>
-      <div class="cartaoP"><h3>Não encontrados <small>${N.length}</small></h3><p class="mut">Para estes, use "Procurar no oGol" na ficha e o favorito, um por um.</p><div class="lotenada">${N.map(r => { const j = Store.get('jogadores', r.id); return `<a class="btn" target="_blank" rel="noopener" href="https://www.ogol.com.br/pesquisa?search_txt=${encodeURIComponent(j.nome)}">${esc(j.nome)} ↗</a>`; }).join(' ') || '<p class="mut">Nenhum.</p>'}</div></div>
-      <div class="linha fim"><button class="btn pri" data-act="loteSalvar" ${marcados ? '' : 'disabled'}>Salvar ${marcados} jogador${marcados === 1 ? '' : 'es'}</button></div>`;
-  }
-  function loteSalvar() {
-    let n = 0;
-    const vazio = v => v == null || v === '' || (Array.isArray(v) && !v.length);
-    const clubeExato = nome => { if (!nome) return null; const k = U.norm(nome); return DB.clubes.find(c => U.norm(c.nome) === k) || null; };
-    for (const r of ST.lote) {
-      const i = ST.loteEsc[r.id], j = Store.get('jogadores', r.id); if (i == null || !j || !r.ops[i]) continue;
-      const o = r.ops[i], d = o.d ? lerOgol(o.d) : null;
-      const x = d || { ogol: `https://www.ogol.com.br/jogador/${o.slug}/${o.id}`, nomeCompleto: o.sub || null, nascimento: /^\d{4}-\d\d-\d\d$/.test(o.nasc) && !/-00-00$/.test(o.nasc) ? o.nasc : null, nacionalidade: o.pais ? o.pais.split(' / ')[0].toUpperCase() : null };
-      const patch = {};
-      for (const k of ['ogol', 'foto', 'alturaCm', 'pesoKg', 'contrato']) if (!vazio(x[k])) patch[k] = x[k];
-      for (const k of ['nomeCompleto', 'nascimento', 'nacionalidade', 'posicoes', 'pe']) if (vazio(j[k]) && !vazio(x[k])) patch[k] = x[k];
-      if (vazio(j.clubes)) { const c = clubeExato(x.clube || o.clube); if (c) patch.clubes = [c.id]; }
-      Store.set('jogadores', j.id, patch); n++;
-    }
-    ST.lote = null; ST.loteArg = null;
-    location.hash = '#/jogadores'; setTimeout(() => toast(`Dados do oGol salvos em ${n} jogador${n === 1 ? '' : 'es'}.`), 50);
-  }
 
   /* ================= COMPARADOR ================= */
   function compararHTML() {
@@ -1170,9 +1093,7 @@ const M = (() => {
         ${cfg.user ? `<a class="btn" target="_blank" rel="noopener" href="https://github.com/${esc(cfg.user)}/${esc(cfg.repo)}/commits">Ver histórico no GitHub ↗</a>` : ''} <button class="btn" data-act="recarregar">Recarregar dados</button></div>
       <div class="cartaoP"><h3>Puxar dados do oGol</h3><p class="mut">Arraste o botão abaixo para a barra de favoritos do Chrome. Depois, na página de qualquer jogador no oGol (ou zerozero), clique nele: o app abre com os dados do jogador para você conferir e salvar.</p>
         <div class="linha"><a class="btn pri" href="${esc(bookmarklet())}" onclick="return false" title="Arraste para a barra de favoritos">⚽ Enviar ao Scouting</a><button class="btn" data-act="copiaFav">Copiar código (para o celular)</button></div>
-        <p class="mut">No iPhone: salve qualquer página nos favoritos do Safari, depois edite esse favorito, troque o nome para "Enviar ao Scouting" e cole o código no lugar do endereço.</p>
-        <h3 style="margin-top:18px">Todos de uma vez</h3><p class="mut">Procura no oGol os ${semOgol().length} jogadores que ainda não têm link. Abre uma aba do oGol: lá, clique no favorito <b>Enviar ao Scouting</b> (a versão nova, arrastada depois de 13/11/2026) e espere. Leva uns 15 minutos. No final o app volta sozinho para você conferir antes de salvar.</p>
-        <div class="linha"><button class="btn" data-act="ogolLote">Puxar todos do oGol</button></div>${ST.loteAberto ? '<p class="ok">Aba do oGol aberta. Agora clique no favorito lá.</p>' : ''}</div>
+        <p class="mut">No iPhone: salve qualquer página nos favoritos do Safari, depois edite esse favorito, troque o nome para "Enviar ao Scouting" e cole o código no lugar do endereço.</p></div>
       <div class="cartaoP"><h3>Lembrete de "dias sem ver"</h3><p class="mut">O jogador entra em "Para rever" no Painel quando passa deste número de dias sem aparecer em uma partida. Deixe em branco para não avisar.</p>
         ${M.opcoes('jogadores', 'status').map(s => `<div class="linha">${chip(s)}<input class="in curto" type="number" min="1" data-lemb="${esc(s)}" value="${L[s] ?? ''}"> dias</div>`).join('')}</div>
       <div class="cartaoP"><h3>Cópia de segurança</h3><p class="mut">Baixa tudo para o seu computador, em formatos abertos. O arquivo completo também serve para restaurar ou testar o sistema.</p><div class="linha"><button class="btn" data-act="backup">Tudo em um arquivo (pacote JSON)</button></div>
@@ -1254,7 +1175,7 @@ const M = (() => {
     const mudou = ST.sec !== sec || ST.arg !== arg; ST.sec = sec; ST.arg = arg;
     $$('#nav a').forEach(a => a.classList.toggle('on', a.dataset.sec === sec || (sec === 'campograma' && a.dataset.sec === 'campogramas')));
     if (LISTAS[sec]) { if (mudou || !$('#corpo')) view.innerHTML = listaHTML(sec); else { const ac = $('.acoes', view); if (ac) ac.outerHTML = $('.acoes', Object.assign(document.createElement('div'), { innerHTML: listaHTML(sec) })).outerHTML; } corpo(); }
-    else view.innerHTML = ({ painel: painelHTML, revisar: revisarHTML, 'ligar-clubes': soltosHTML, ogol: ogolHTML, 'ogol-lote': ogolLoteHTML, comparar: compararHTML, campogramas: campogramasHTML, campograma: campogramaHTML, norteador: norteadorHTML, ajustes: ajustesHTML }[sec] || painelHTML)();
+    else view.innerHTML = ({ painel: painelHTML, revisar: revisarHTML, 'ligar-clubes': soltosHTML, ogol: ogolHTML, comparar: compararHTML, campogramas: campogramasHTML, campograma: campogramaHTML, norteador: norteadorHTML, ajustes: ajustesHTML }[sec] || painelHTML)();
     $('#col').scrollTop = y;
   }
   const repintar = U.debounce(() => { ST.sujo = false; pintar(true); }, 120);
@@ -1285,8 +1206,6 @@ const M = (() => {
     ligaSolto: el => ligaSolto(el.dataset.nome, el.dataset.id),
     copiaFav: async () => { try { await navigator.clipboard.writeText(bookmarklet()); toast('Código copiado.'); } catch { toast('Não consegui copiar. Segure o botão verde e copie o link.'); } },
     ogolSalvar: () => ogolSalvar(),
-    ogolLote: () => ogolLoteAbrir(),
-    loteSalvar: () => loteSalvar(),
     novoSolto: el => ligaSolto(el.dataset.nome, Store.add('clubes', { nome: U.nomeClube(el.dataset.nome) }).id),
     cmpTira: el => { ST.cmp = ST.cmp.filter(x => x !== el.dataset.id); pintar(); }, cmpLimpa: () => { ST.cmp = []; pintar(); },
     proxIncompleta: () => { const l = linhas('jogadores').filter(j => M.faltando(j).length), a = atual(), i = l.findIndex(j => j.id === a.id), n = l[(i + 1) % l.length]; if (!n || n.id === a.id) return toast('Não há outra ficha incompleta nesta lista.'); ST.pilha = []; abrir('jogadores', n.id); },
@@ -1320,7 +1239,6 @@ const M = (() => {
   });
   document.addEventListener('change', async e => {
     const t = e.target, a = atual();
-    if (t.dataset.lote) { ST.loteEsc[t.dataset.lote] = t.type === 'checkbox' ? (t.checked ? 0 : null) : (t.value === '' ? null : +t.value); const n = ST.lote.filter(r => ST.loteEsc[r.id] != null && Store.get('jogadores', r.id)).length; $$('[data-act="loteSalvar"]').forEach(b => { b.disabled = !n; b.textContent = `Salvar ${n} jogador${n === 1 ? '' : 'es'}`; }); return; }
     if (t.dataset.f != null && a && drawer.contains(t)) {
       const k = t.dataset.f; let v = t.value.trim ? t.value.trim() : t.value;
       if (v === '__novo') { v = await novaOpcao(a.ent, k); if (!v) { refazCampo(k); return; } }
