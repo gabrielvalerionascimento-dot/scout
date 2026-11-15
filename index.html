@@ -637,13 +637,13 @@ const M = (() => {
   const D4 = [G('rb', 'LD', 'LATERAL DIREITO', 86, 71), G('rcb', 'ZAG', 'ZAGUEIRO', 62, 76), G('lcb', 'ZAG', 'ZAGUEIRO', 38, 76), G('lb', 'LE', 'LATERAL ESQUERDO', 14, 71)];
   const D3 = [G('rcb', 'ZAG', 'ZAGUEIRO', 72, 76), G('cb', 'ZAG', 'ZAGUEIRO', 50, 78), G('lcb', 'ZAG', 'ZAGUEIRO', 28, 76)];
   const FORMACOES = {
-    '4-3-3': [GK, ...D4, G('dm', 'VOL', 'VOLANTE', 50, 57), G('rcm', 'MÉD', 'MÉDIO', 70, 43), G('lcm', 'MÉD', 'MÉDIO', 30, 43), G('rw', 'EXT', 'EXTREMO', 85, 21), G('st', 'ATA', 'ATACANTE', 50, 13), G('lw', 'EXT', 'EXTREMO', 15, 21)],
-    '4-2-3-1': [GK, ...D4, G('rdm', 'VOL', 'VOLANTE', 64, 56), G('ldm', 'VOL', 'VOLANTE', 36, 56), G('rw', 'EXT', 'EXTREMO', 85, 30), G('am', 'MEIA', 'MEIA', 50, 35), G('lw', 'EXT', 'EXTREMO', 15, 30), G('st', 'ATA', 'ATACANTE', 50, 12)],
+    '4-3-3': [GK, ...D4, G('dm', 'VOL', 'VOLANTE', 50, 57), G('rcm', 'MÉD', 'MÉDIO', 70, 43), G('lcm', 'MEI', 'MEIA', 30, 43), G('rw', 'EXT', 'EXTREMO', 85, 21), G('st', 'ATA', 'ATACANTE', 50, 13), G('lw', 'EXT', 'EXTREMO', 15, 21)],
+    '4-2-3-1': [GK, ...D4, G('rdm', 'VOL', 'VOLANTE', 64, 56), G('ldm', 'VOL', 'VOLANTE', 36, 56), G('rw', 'EXT', 'EXTREMO', 85, 30), G('am', 'MEI', 'MEIA', 50, 35), G('lw', 'EXT', 'EXTREMO', 15, 30), G('st', 'ATA', 'ATACANTE', 50, 12)],
     '4-4-2': [GK, ...D4, G('rm', 'EXT', 'EXTREMO', 86, 44), G('rcm', 'VOL', 'VOLANTE', 62, 50), G('lcm', 'MÉD', 'MÉDIO', 38, 50), G('lm', 'EXT', 'EXTREMO', 14, 44), G('rst', 'ATA', 'ATACANTE', 62, 15), G('lst', 'ATA', 'ATACANTE', 38, 15)],
-    '4-1-4-1': [GK, ...D4, G('dm', 'VOL', 'VOLANTE', 50, 59), G('rm', 'EXT', 'EXTREMO', 86, 36), G('rcm', 'MÉD', 'MÉDIO', 63, 41), G('lcm', 'MEIA', 'MEIA', 37, 41), G('lm', 'EXT', 'EXTREMO', 14, 36), G('st', 'ATA', 'ATACANTE', 50, 12)],
-    '3-5-2': [GK, ...D3, G('rwb', 'ALA D', 'LATERAL DIREITO', 88, 48), G('dm', 'VOL', 'VOLANTE', 50, 58), G('rcm', 'MÉD', 'MÉDIO', 68, 42), G('lcm', 'MEIA', 'MEIA', 32, 42), G('lwb', 'ALA E', 'LATERAL ESQUERDO', 12, 48), G('rst', 'ATA', 'ATACANTE', 62, 15), G('lst', 'ATA', 'ATACANTE', 38, 15)],
+    '4-1-4-1': [GK, ...D4, G('dm', 'VOL', 'VOLANTE', 50, 59), G('rm', 'EXT', 'EXTREMO', 86, 36), G('rcm', 'MÉD', 'MÉDIO', 63, 41), G('lcm', 'MEI', 'MEIA', 37, 41), G('lm', 'EXT', 'EXTREMO', 14, 36), G('st', 'ATA', 'ATACANTE', 50, 12)],
+    '3-5-2': [GK, ...D3, G('rwb', 'ALA D', 'LATERAL DIREITO', 88, 48), G('dm', 'VOL', 'VOLANTE', 50, 58), G('rcm', 'MÉD', 'MÉDIO', 68, 42), G('lcm', 'MEI', 'MEIA', 32, 42), G('lwb', 'ALA E', 'LATERAL ESQUERDO', 12, 48), G('rst', 'ATA', 'ATACANTE', 62, 15), G('lst', 'ATA', 'ATACANTE', 38, 15)],
     '3-4-3': [GK, ...D3, G('rwb', 'ALA D', 'LATERAL DIREITO', 88, 50), G('rcm', 'VOL', 'VOLANTE', 62, 53), G('lcm', 'MÉD', 'MÉDIO', 38, 53), G('lwb', 'ALA E', 'LATERAL ESQUERDO', 12, 50), G('rw', 'EXT', 'EXTREMO', 80, 22), G('st', 'ATA', 'ATACANTE', 50, 13), G('lw', 'EXT', 'EXTREMO', 20, 22)],
-    '5-3-2': [GK, G('rwb', 'ALA D', 'LATERAL DIREITO', 90, 64), ...D3, G('lwb', 'ALA E', 'LATERAL ESQUERDO', 10, 64), G('dm', 'VOL', 'VOLANTE', 50, 55), G('rcm', 'MÉD', 'MÉDIO', 70, 42), G('lcm', 'MEIA', 'MEIA', 30, 42), G('rst', 'ATA', 'ATACANTE', 62, 15), G('lst', 'ATA', 'ATACANTE', 38, 15)],
+    '5-3-2': [GK, G('rwb', 'ALA D', 'LATERAL DIREITO', 90, 64), ...D3, G('lwb', 'ALA E', 'LATERAL ESQUERDO', 10, 64), G('dm', 'VOL', 'VOLANTE', 50, 55), G('rcm', 'MÉD', 'MÉDIO', 70, 42), G('lcm', 'MEI', 'MEIA', 30, 42), G('rst', 'ATA', 'ATACANTE', 62, 15), G('lst', 'ATA', 'ATACANTE', 38, 15)],
   };
 
   return {
