@@ -86,6 +86,8 @@ section{margin-top:22px}section>h3{font-size:14px;margin-bottom:10px;padding-bot
 .ogolcab{display:flex;gap:14px;align-items:center;margin-bottom:14px}.ogolcab h2{font-size:20px}.opcao{display:flex;gap:8px;align-items:baseline;padding:6px 0;text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;color:var(--tx);cursor:pointer}
 .ogtbl td{white-space:normal}.grade+.cartaoP,.cartaoP+.cartaoP{margin-top:14px}
 
+.gramado.denso .slot{width:23%;min-width:96px;padding:3px;gap:2px;border-radius:7px}.gramado.denso .slotCab{font-size:9.5px}.gramado.denso .slotCab button{width:16px;height:16px;font-size:11px}
+.gramado.denso .ficha{flex-direction:row;align-items:baseline;gap:4px;padding:1px 5px;border-left-width:3px;border-radius:4px;line-height:1.3}.gramado.denso .ficha b{font-size:10.5px;flex:0 1 auto;min-width:0}.gramado.denso .ficha span{font-size:9px;flex:1 1 0;min-width:0}
 
 </style>
 </head>
@@ -1069,10 +1071,12 @@ const M = (() => {
     const fora = Object.entries(g.slots || {}).filter(([k]) => !chaves.has(k)).flatMap(([, v]) => v);
     const fichinha = (id, k, i) => { const j = Store.get('jogadores', id); if (!j) return '';
       return `<div class="ficha" draggable="true" data-drag="slot" data-id="${id}" data-slot="${k}" data-act="fichaMenu" style="--h:${j.status ? U.hue(j.status) : 210}"><b>${i != null ? i + 1 + '. ' : ''}${esc(j.nome)}</b><span>${[U.age(j.nascimento), M.clubesDe(j)[0]].filter(x => x != null && x !== '').map(esc).join(' · ')}</span></div>`; };
+    const maxPos = Math.max(0, ...Object.values(g.slots || {}).map(l => l.length));
+    const denso = g.tamanho ? g.tamanho === 'menor' : maxPos > 3;
     return `<div class="cab"><h1><a href="#/campogramas" class="mut">Campogramas /</a> <input class="in titulo" data-cg="nome" value="${esc(g.nome || '')}" placeholder="Nome do campograma"></h1>
         <div class="acoes"><select class="in" data-cg="formacao">${Object.keys(M.FORMACOES).map(f => `<option ${f === g.formacao ? 'selected' : ''}>${f}</option>`).join('')}</select>
-        <button class="btn" data-act="dupCampo">Duplicar</button><button class="btn" data-act="imprimir">Imprimir / PDF</button><button class="btn perigo" data-act="apagaCampo">Apagar</button></div></div>
-      <div class="campoLayout"><div class="campo-wrap"><div class="gramado">
+        <button class="btn" data-act="tamCampo" title="Muda o tamanho das fichas dentro do campo">${denso ? 'Fichas maiores' : 'Fichas menores'}</button><button class="btn" data-act="dupCampo">Duplicar</button><button class="btn" data-act="imprimir">Imprimir / PDF</button><button class="btn perigo" data-act="apagaCampo">Apagar</button></div></div>
+      <div class="campoLayout"><div class="campo-wrap"><div class="gramado${denso ? ' denso' : ''}">
         <div class="linhas"><i class="meio"></i><i class="circ"></i><i class="area a1"></i><i class="area a2"></i><i class="peq p1"></i><i class="peq p2"></i></div>
         ${F.map(s => `<div class="slot" data-drop="slot" data-slot="${s.k}" style="left:${s.x}%;top:${s.y}%"><div class="slotCab"><span>${s.label}</span><button data-act="slotAdd" data-slot="${s.k}" title="Adicionar jogador">＋</button></div>
           ${((g.slots || {})[s.k] || []).map((id, i) => fichinha(id, s.k, i)).join('')}</div>`).join('')}</div></div>
@@ -1217,7 +1221,8 @@ const M = (() => {
     proxIncompleta: () => { const l = linhas('jogadores').filter(j => M.faltando(j).length), a = atual(), i = l.findIndex(j => j.id === a.id), n = l[(i + 1) % l.length]; if (!n || n.id === a.id) return toast('Não há outra ficha incompleta nesta lista.'); ST.pilha = []; abrir('jogadores', n.id); },
     importar: importarModal, importarOk, fechaModal,
     novoCampo: () => { const g = Store.add('campogramas', { nome: 'Novo campograma', formacao: '4-3-3', slots: {} }); location.hash = '#/campograma/' + g.id; },
-    dupCampo: () => { const g = campoAtual(), n = Store.add('campogramas', { nome: (g.nome || '') + ' (cópia)', formacao: g.formacao, slots: JSON.parse(JSON.stringify(g.slots || {})), notas: g.notas }); location.hash = '#/campograma/' + n.id; },
+    tamCampo: () => { const g = campoAtual(), el = document.querySelector('.gramado'); g.tamanho = el && el.classList.contains('denso') ? 'maior' : 'menor'; salvaCampo(g); pintar(true); },
+    dupCampo: () => { const g = campoAtual(), n = Store.add('campogramas', { nome: (g.nome || '') + ' (cópia)', formacao: g.formacao, slots: JSON.parse(JSON.stringify(g.slots || {})), notas: g.notas, tamanho: g.tamanho }); location.hash = '#/campograma/' + n.id; },
     apagaCampo: async () => { const g = campoAtual(); if (!await pergunta(`Apagar o campograma "${g.nome}"?`, 'Apagar')) return; Store.remove('campogramas', g.id); location.hash = '#/campogramas'; },
     imprimir: () => window.print(),
     slotAdd: el => slotModal(el.dataset.slot), slotEscolhe: el => addSlot(el.dataset.slot, el.dataset.id),
