@@ -472,7 +472,8 @@ const M = (() => {
       { k: 'alturaCm', l: 'Altura (cm)', t: 'text' }, { k: 'pesoKg', l: 'Peso (kg)', t: 'text' }, { k: 'contrato', l: 'Contrato até', t: 'text' }, { k: 'ogol', l: 'Link oGol', t: 'url' },
       { k: 'clubes', l: 'Clube atual', t: 'rels', ent: 'clubes' }, { k: 'emprestimoDe', l: 'Emprestado por (clube dono)', t: 'rel', ent: 'clubes' }, { k: 'emprestimoAte', l: 'Empréstimo até', t: 'text' },
       { k: 'categorias', l: 'Categoria', t: 'multi' },
-      { k: 'nacionalidade', l: 'Nacionalidade', t: 'sel' }, { k: 'status', l: 'Status', t: 'sel' },
+      { k: 'nacionalidade', l: 'Nacionalidade', t: 'sel' }, { k: 'nacionalidade2', l: '2ª nacionalidade', t: 'sel' },
+      { k: 'status', l: 'Status', t: 'sel' },
       { k: 'potencial', l: 'Potencial do jogador', t: 'sel' }, { k: 'fortes', l: 'Pontos fortes', t: 'multi' },
       { k: 'fracos', l: 'Pontos fracos', t: 'multi' }, { k: 'video', l: 'Link vídeo', t: 'url' },
       { k: 'report', l: 'Report do atleta', t: 'md' },
@@ -508,7 +509,8 @@ const M = (() => {
     for (const r of DB[ent]) for (const v of [].concat(r[k] ?? [])) cont.set(v, (cont.get(v) || 0) + 1);
     let base = BASE[`${ent}.${k}`] || [];
     if (k === 'categorias' || k === 'categoria') base = CATS;
-    if (k === 'pais' || k === 'nacionalidade') for (const e of ['clubes', 'contatos']) for (const r of DB[e]) if (r.pais && !cont.has(r.pais)) cont.set(r.pais, 0);
+    if (k === 'nacionalidade' || k === 'nacionalidade2') for (const r of DB.jogadores) for (const v of [r.nacionalidade, r.nacionalidade2]) if (v && !cont.has(v)) cont.set(v, 0);
+    if (k === 'pais' || k === 'nacionalidade' || k === 'nacionalidade2') for (const e of ['clubes', 'contatos']) for (const r of DB[e]) if (r.pais && !cont.has(r.pais)) cont.set(r.pais, 0);
     for (const v of [...base, ...((DB.config.opcoes || {})[`${ent}.${k}`] || [])]) if (!cont.has(v)) cont.set(v, 0);
     const ordemBase = new Map(base.map((v, i) => [v, i]));
     return [...cont.keys()].sort((a, b) => (ordemBase.has(a) && ordemBase.has(b)) ? ordemBase.get(a) - ordemBase.get(b) : ordemBase.has(a) ? -1 : ordemBase.has(b) ? 1 : String(a).localeCompare(String(b), 'pt'));
@@ -672,7 +674,7 @@ const M = (() => {
   const LISTAS = {
     jogadores: {
       titulo: 'Jogadores', ordem: { i: 1, dir: 1 },
-      busca: r => U.norm([r.nome, r.nomeCompleto, ...M.clubesDe(r), r.nacionalidade, r.perfil].join(' ')),
+      busca: r => U.norm([r.nome, r.nomeCompleto, ...M.clubesDe(r), r.nacionalidade, r.nacionalidade2, r.perfil].join(' ')),
       filtros: [['posicoes', 'Posição'], ['status', 'Status'], ['categorias', 'Categoria'], ['nacionalidade', 'Nacionalidade']],
       flags: [['incompletas', 'Fichas incompletas', r => M.faltando(r).length > 0], ['rever', 'Para rever', r => M.paraRever().some(x => x.j === r)]],
       cols: [
@@ -683,7 +685,7 @@ const M = (() => {
         { l: 'Clube atual', get: r => M.clubesDe(r).join(), html: r => M.clubesDe(r).map(n => chip(n)).join('') },
         { l: 'Categoria', get: r => (r.categorias || []).join(), html: r => chips(r.categorias) },
         { l: 'Status', get: r => r.status || '', html: r => chip(r.status) },
-        { l: 'Nacionalidade', get: r => r.nacionalidade || '', html: r => chip(r.nacionalidade) },
+        { l: 'Nacionalidade', get: r => r.nacionalidade || '', html: r => chip(r.nacionalidade) + (r.nacionalidade2 ? chip(r.nacionalidade2) : '') },
         { l: 'Pé', get: r => r.pe || '', html: r => esc(r.pe || '') },
         { l: 'Partidas', get: r => M.partidasDe(r.id).length, html: r => M.partidasDe(r.id).length || '' },
         { l: 'Última vez visto', get: r => M.ultimaVez(r.id) || '', html: r => { const d = M.ultimaVez(r.id); return d ? `${U.fmtDate(d)} <span class="mut">· ${haDias(M.diasSemVer(r.id))}</span>` : ''; } },
@@ -969,9 +971,10 @@ const M = (() => {
     const ap = (v('altura / peso') || '').split('/');
     const nasc = (d.b || v('data de nascimento')).match(/\d{4}-\d{2}-\d{2}/);
     const contr = v('contrato').match(/(\d{4})\/(\d{2})/);
+    const nats = [...new Set([...(R['nacionalidade'] || []), d.nat || ''].join('/').split(/\s*[\/,]\s*/).map(x => x.replace(/\(.*?\)/g, '').trim().toUpperCase()).filter(Boolean))];
     return {
       ogol: d.u, nome: d.n, nomeCompleto: v('nome') || null, nascimento: nasc ? nasc[0] : null,
-      nacionalidade: (d.nat || v('nacionalidade') || '').toUpperCase() || null, posicoes: pos.length ? pos : null, pe,
+      nacionalidade: nats[0] || null, nacionalidade2: nats[1] || null, posicoes: pos.length ? pos : null, pe,
       alturaCm: num(d.h || ap[0]) || null, pesoKg: num(d.w || ap[1]) || null, contrato: contr ? `${contr[2]}/${contr[1]}` : null,
       clube: v('clube atual') || null, foto: d.f || null,
     };
@@ -990,7 +993,7 @@ const M = (() => {
     }).filter(x => x.s).sort((a, b) => b.s - a.s).slice(0, 5).map(x => x.j);
   }
   const clubeOgol = nome => { if (!nome) return null; const n = U.norm(nome); return DB.clubes.find(c => U.norm(c.nome) === n) || (M.sugerirClubes(nome)[0] || {}).c || null; };
-  const CAMPOS_OGOL = [['nomeCompleto', 'Nome completo'], ['nascimento', 'Data de nascimento'], ['nacionalidade', 'Nacionalidade'], ['posicoes', 'Posição'], ['pe', 'Pé dominante'],
+  const CAMPOS_OGOL = [['nomeCompleto', 'Nome completo'], ['nascimento', 'Data de nascimento'], ['nacionalidade', 'Nacionalidade'], ['nacionalidade2', '2ª nacionalidade'], ['posicoes', 'Posição'], ['pe', 'Pé dominante'],
     ['alturaCm', 'Altura (cm)'], ['pesoKg', 'Peso (kg)'], ['contrato', 'Contrato até'], ['clube', 'Clube atual'], ['ogol', 'Link oGol'], ['foto', 'Foto']];
   function ogolHTML() {
     const o = lerOgol(ST.arg || ''); if (!o) return `<p class="mut">Não consegui ler os dados enviados pelo oGol. Tente clicar no favorito de novo.</p>`;
@@ -1040,7 +1043,7 @@ const M = (() => {
   function compararHTML() {
     const js = ST.cmp.map(id => Store.get('jogadores', id)).filter(Boolean);
     const lin = [['Posição', j => chips(j.posicoes)], ['Perfil', j => esc(j.perfil || '')], ['Idade', j => j.nascimento ? `${U.age(j.nascimento)} <span class="mut">(${U.fmtDate(j.nascimento)})</span>` : ''], ['Pé', j => esc(j.pe || '')],
-      ['Biotipo', j => chip(j.biotipo)], ['Altura', j => chip(j.altura)], ['Clube atual', j => M.clubesDe(j).map(n => chip(n)).join('') + (j.emprestimoDe ? ` <span class="mut">emprestado por ${esc(M.nomeClube(j.emprestimoDe))}${j.emprestimoAte ? ' até ' + esc(j.emprestimoAte) : ''}</span>` : '')], ['Categoria', j => chips(j.categorias)], ['Nacionalidade', j => chip(j.nacionalidade)],
+      ['Biotipo', j => chip(j.biotipo)], ['Altura', j => chip(j.altura)], ['Clube atual', j => M.clubesDe(j).map(n => chip(n)).join('') + (j.emprestimoDe ? ` <span class="mut">emprestado por ${esc(M.nomeClube(j.emprestimoDe))}${j.emprestimoAte ? ' até ' + esc(j.emprestimoAte) : ''}</span>` : '')], ['Categoria', j => chips(j.categorias)], ['Nacionalidade', j => chip(j.nacionalidade) + (j.nacionalidade2 ? chip(j.nacionalidade2) : '')],
       ['Status', j => chip(j.status)], ['Potencial', j => chip(j.potencial)], ['Pontos fortes', j => chips(j.fortes)], ['Pontos fracos', j => chips(j.fracos)], ['Partidas vistas', j => M.partidasDe(j.id).length],
       ['Última vez visto', j => M.ultimaVez(j.id) ? `${U.fmtDate(M.ultimaVez(j.id))} <span class="mut">${haDias(M.diasSemVer(j.id))}</span>` : '<span class="mut">nunca</span>'],
       ['Agente', j => M.agentesDe(j.id).map(c => esc(c.nome)).join(', ')], ['Report', j => `<div class="md">${U.md(j.report || '')}</div>`],
