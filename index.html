@@ -471,7 +471,7 @@ const M = (() => {
       { k: 'posicoes', l: 'Posição', t: 'multi' }, { k: 'perfil', l: 'Perfil da posição', t: 'sel' },
       { k: 'nascimento', l: 'Data de nascimento', t: 'date' }, { k: 'pe', l: 'Pé dominante', t: 'sel' },
       { k: 'biotipo', l: 'Biotipo', t: 'sel' }, { k: 'altura', l: 'Altura', t: 'sel' },
-      { k: 'alturaCm', l: 'Altura (cm)', t: 'text' }, { k: 'pesoKg', l: 'Peso (kg)', t: 'text' }, { k: 'contrato', l: 'Contrato até', t: 'text' }, { k: 'ogol', l: 'Link oGol', t: 'url' },
+      { k: 'alturaCm', l: 'Altura (cm)', t: 'text' }, { k: 'pesoKg', l: 'Peso (kg)', t: 'text' }, { k: 'contrato', l: 'Contrato até', t: 'text' }, { k: 'agencia', l: 'Agência', t: 'sel' }, { k: 'ogol', l: 'Link oGol', t: 'url' },
       { k: 'clubes', l: 'Clube atual', t: 'rels', ent: 'clubes' }, { k: 'emprestimoDe', l: 'Emprestado por (clube dono)', t: 'rel', ent: 'clubes' }, { k: 'emprestimoAte', l: 'Empréstimo até', t: 'text' },
       { k: 'categorias', l: 'Categoria', t: 'multi' },
       { k: 'nacionalidade', l: 'Nacionalidade', t: 'sel' }, { k: 'nacionalidade2', l: '2ª nacionalidade', t: 'sel' },
@@ -511,6 +511,7 @@ const M = (() => {
     for (const r of DB[ent]) for (const v of [].concat(r[k] ?? [])) cont.set(v, (cont.get(v) || 0) + 1);
     let base = BASE[`${ent}.${k}`] || [];
     if (k === 'categorias' || k === 'categoria') base = CATS;
+    if (k === 'agencia') { const clubes = new Set(DB.clubes.map(c => U.norm(c.nome))); for (const c of DB.contatos) for (const o of c.organizacoes || []) if (o && !cont.has(o) && !clubes.has(U.norm(o))) cont.set(o, 0); }
     if (k === 'nacionalidade' || k === 'nacionalidade2') for (const r of DB.jogadores) for (const v of [r.nacionalidade, r.nacionalidade2]) if (v && !cont.has(v)) cont.set(v, 0);
     if (k === 'pais' || k === 'nacionalidade' || k === 'nacionalidade2') for (const e of ['clubes', 'contatos']) for (const r of DB[e]) if (r.pais && !cont.has(r.pais)) cont.set(r.pais, 0);
     for (const v of [...base, ...((DB.config.opcoes || {})[`${ent}.${k}`] || [])]) if (!cont.has(v)) cont.set(v, 0);
@@ -554,6 +555,8 @@ const M = (() => {
   const partidasDoClube = cid => memo('pc:' + cid, () => DB.partidas.filter(p => p.mandante === cid || p.adversario === cid).sort((a, b) => (b.data || '').localeCompare(a.data || '')));
   const jogadoresDoClube = cid => memo('jc:' + cid, () => DB.jogadores.filter(j => (j.clubes || []).includes(cid)));  // corrige a fórmula do Coda: vale também para quem tem clube + seleção
   const agentesDe = jid => memo('ag:' + jid, () => DB.contatos.filter(c => (c.jogadores || []).includes(jid)));
+  // contatos cuja organização é a agência informada (sem diferenciar maiúsculas/acentos)
+  const contatosDaAgencia = ag => { const k = U.norm(ag || ''); return k ? DB.contatos.filter(c => (c.organizacoes || []).some(o => U.norm(o) === k)) : []; };
   const ultimaVez = jid => { const l = partidasDe(jid); return l.length ? l[0].data || null : null; };
   const diasSemVer = jid => { const d = ultimaVez(jid); return d ? U.days(d, U.today()) : null; };
 
@@ -650,7 +653,7 @@ const M = (() => {
 
   return {
     CAMPOS, opcoes, nomeClube, nomeJog, clubesDe, titulo, tituloCurto, rotulo, partidasDe, partidasDoClube, jogadoresDoClube, agentesDe, ultimaVez, diasSemVer,
-    faltando, paraRever, followUps, nomeLado, clubesSoltos, sugerirClubes, entradas, acharJogador, citados, pendencias, trechos, FORMACOES,
+    contatosDaAgencia, faltando, paraRever, followUps, nomeLado, clubesSoltos, sugerirClubes, entradas, acharJogador, citados, pendencias, trechos, FORMACOES,
   };
 })();
 
@@ -667,7 +670,7 @@ const M = (() => {
   const toast = (msg, ms = 2600) => { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, ms); };
   const vazio = v => v == null || v === '' || (Array.isArray(v) && !v.length);
   const chips = v => [].concat(v ?? []).map(x => chip(x)).join('');
-  const relChip = (ent, id) => { const r = Store.get(ent, id); return r ? `<a class="chip rel" data-act="abrir" data-ent="${ent}" data-id="${id}">${esc(M.rotulo(ent, r))}</a>` : ''; };
+  const relChip = (ent, id, txt) => { const r = Store.get(ent, id); return r ? `<a class="chip rel" data-act="abrir" data-ent="${ent}" data-id="${id}">${esc(txt || M.rotulo(ent, r))}</a>` : ''; };
   const haDias = d => d == null ? '<span class="mut">nunca visto</span>' : d === 0 ? 'hoje' : `há ${d} dia${d > 1 ? 's' : ''}`;
   const statusDot = j => j.status ? `<span class="dot" style="--h:${U.hue(j.status)}" title="${esc(j.status)}"></span>` : '';
   const subJog = j => [(j.posicoes || []).join(' / '), j.nascimento ? U.age(j.nascimento) + ' anos' : '', M.clubesDe(j).join(' / ')].filter(Boolean).join(' · ');
@@ -676,7 +679,7 @@ const M = (() => {
   const LISTAS = {
     jogadores: {
       titulo: 'Jogadores', ordem: { i: 1, dir: 1 },
-      busca: r => U.norm([r.nome, r.nomeCompleto, ...M.clubesDe(r), r.nacionalidade, r.nacionalidade2, r.perfil].join(' ')),
+      busca: r => U.norm([r.nome, r.nomeCompleto, ...M.clubesDe(r), r.nacionalidade, r.nacionalidade2, r.perfil, r.agencia].join(' ')),
       filtros: [['posicoes', 'Posição'], ['status', 'Status'], ['categorias', 'Categoria'], ['nacionalidade', 'Nacionalidade']],
       flags: [['incompletas', 'Fichas incompletas', r => M.faltando(r).length > 0], ['rever', 'Para rever', r => M.paraRever().some(x => x.j === r)]],
       cols: [
@@ -831,7 +834,8 @@ const M = (() => {
           <span class="mut">Na página do jogador no oGol, clique no favorito <b>Enviar ao Scouting</b> para puxar os dados.</span></div>
         <div class="calc"><div><label>Idade</label><b>${U.age(r.nascimento) ?? '—'}</b></div><div><label>Partidas vistas</label><b>${M.partidasDe(r.id).length}</b></div>
           <div><label>Última vez visto</label><b>${M.ultimaVez(r.id) ? U.fmtDate(M.ultimaVez(r.id)) : '—'}</b> <span class="mut">${haDias(d)}</span></div>
-          <div><label>Agente / representante</label>${ag.length ? ag.map(c => relChip('contatos', c.id)).join('') : '<span class="mut">nenhum ligado</span>'}</div></div>
+          <div><label>Agência / agente</label>${(() => { const daAg = M.contatosDaAgencia(r.agencia), l = [...ag, ...daAg.filter(c => !ag.includes(c))];
+            return (r.agencia ? `<b>${esc(r.agencia)}</b> ` : '') + (l.filter(c => c.nome || !daAg.includes(c)).map(c => relChip('contatos', c.id)).join('') || (r.agencia ? (daAg.length ? daAg.map(c => relChip('contatos', c.id, 'ver contato')).join('') : '<span class="mut">sem contato desta agência</span>') : '<span class="mut">nenhum ligado</span>')); })()}</div></div>
         ${secao(`Observações jogo a jogo <small>${nLig} ligada${nLig === 1 ? '' : 's'}${tr.length - nLig ? ` · ${tr.length - nLig} só citado` : ''}</small>`, tr.length ? tr.map(t => `<div class="trecho ${t.ligado ? '' : 'solto'}">
           <div class="linha"><a data-act="abrir" data-ent="partidas" data-id="${t.p.id}"><span class="mut">${U.fmtDate(t.p.data)}</span> <b>${esc(M.tituloCurto(t.p))}</b></a>
           ${t.ligado ? '' : `<button class="btn" data-act="ligar" data-p="${t.p.id}" data-j="${r.id}">Ligar à partida</button>`}</div>
@@ -1048,7 +1052,7 @@ const M = (() => {
       ['Biotipo', j => chip(j.biotipo)], ['Altura', j => chip(j.altura)], ['Clube atual', j => M.clubesDe(j).map(n => chip(n)).join('') + (j.emprestimoDe ? ` <span class="mut">emprestado por ${esc(M.nomeClube(j.emprestimoDe))}${j.emprestimoAte ? ' até ' + esc(j.emprestimoAte) : ''}</span>` : '')], ['Categoria', j => chips(j.categorias)], ['Nacionalidade', j => chip(j.nacionalidade) + (j.nacionalidade2 ? chip(j.nacionalidade2) : '')],
       ['Status', j => chip(j.status)], ['Potencial', j => chip(j.potencial)], ['Pontos fortes', j => chips(j.fortes)], ['Pontos fracos', j => chips(j.fracos)], ['Partidas vistas', j => M.partidasDe(j.id).length],
       ['Última vez visto', j => M.ultimaVez(j.id) ? `${U.fmtDate(M.ultimaVez(j.id))} <span class="mut">${haDias(M.diasSemVer(j.id))}</span>` : '<span class="mut">nunca</span>'],
-      ['Agente', j => M.agentesDe(j.id).map(c => esc(c.nome)).join(', ')], ['Report', j => `<div class="md">${U.md(j.report || '')}</div>`],
+      ['Agência / agente', j => [j.agencia, ...M.agentesDe(j.id).map(c => c.nome)].filter(Boolean).map(esc).join(', ')], ['Report', j => `<div class="md">${U.md(j.report || '')}</div>`],
       ['Última observação', j => { const t = M.trechos(j.id).find(t => t.texto); return t ? `<span class="mut">${U.fmtDate(t.p.data)} · ${esc(M.tituloCurto(t.p))}</span><p>${esc(t.texto)}</p>` : ''; }]];
     return `<div class="cab"><h1>Comparar jogadores</h1><div class="acoes">${js.length ? `<button class="btn" data-act="cmpLimpa">Limpar</button>` : ''}</div></div>
       <div class="filtros">${js.length < 4 ? `<span class="pick"><input class="in" data-pick="jogadores" data-alvo="cmp" placeholder="＋ Adicionar jogador (até 4)…" autocomplete="off"><div class="pop" hidden></div></span>` : ''}</div>
